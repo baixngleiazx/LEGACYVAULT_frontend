@@ -66,6 +66,8 @@ const registerType = ref('email')
 
 const form = reactive({ email: '', phone: '', verifyCode: '', password: '', nickname: '' })
 
+/** 邮箱正则 */
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 /** 手机号正则 */
 const phoneRegex = /^1[3-9]\d{9}$/
 
@@ -100,6 +102,7 @@ const handleSendCode = async () => {
   if (registerType.value === 'email') {
     target = form.email
     if (!target) { ElMessage.warning('请先输入邮箱 / Please enter your email first'); return }
+    if (!emailRegex.test(target)) { ElMessage.warning('邮箱格式不正确 / Invalid email format'); return }
   } else {
     target = form.phone
     if (!target) { ElMessage.warning('请先输入手机号 / Please enter your phone number first'); return }

@@ -6,8 +6,8 @@
       </div>
       <p style="font-size:20px;margin:16px 0">天 / Days</p>
       <p style="color:#909399;margin-bottom:32px">距下次打卡截止 / Until next check-in deadline</p>
-      <el-button type="primary" size="large" style="width:200px;height:60px;font-size:18px" @click="showTotpInput = true">
-        确认我仍然活跃 / Confirm I'm still active
+      <el-button class="confirm-active-btn" type="primary" size="large" @click="showTotpInput = true">
+        确认活跃 / Confirm Active
       </el-button>
       <p style="margin-top:16px;color:#909399">打卡需要输入TOTP验证码 / TOTP code required for check-in</p>
     </div>
@@ -16,7 +16,7 @@
       <el-input v-model="totpCode" placeholder="6位TOTP验证码 / 6-digit TOTP code" maxlength="6" size="large" @keyup.enter="handleCheckIn" />
       <template #footer>
         <el-button @click="showTotpInput = false">取消 / Cancel</el-button>
-        <el-button type="primary" @click="handleCheckIn" :loading="loading">确认打卡 / Confirm Check-in</el-button>
+        <el-button class="dialog-confirm-btn" type="primary" @click="handleCheckIn" :loading="loading">确认打卡 / Confirm Check-in</el-button>
       </template>
     </el-dialog>
     <!-- 设置区域 -->
@@ -95,3 +95,27 @@ const handleTravelToggle = async (val: boolean) => {
   }
 }
 </script>
+
+<style scoped>
+.checkin-fullscreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  text-align: center;
+}
+
+.confirm-active-btn {
+  width: 240px;
+  min-height: 56px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(64, 158, 255, 0.22);
+}
+
+.dialog-confirm-btn {
+  min-width: 132px;
+}
+</style>
