@@ -42,7 +42,27 @@
       <template #header><span>打卡记录 / Check-in Records</span></template>
       <p style="color:#909399">上次打卡 / Last check-in：{{ status?.lastCheckInAt || '暂无记录 / No records' }}</p>
       <p style="color:#909399">下次截止 / Next deadline：{{ status?.nextDeadline || '暂无 / N/A' }}</p>
+      <p v-if="status?.travelModeEnabled" style="color:#E6A23C">
+        旅行模式：{{ status.travelStartDate }} ~ {{ status.travelEndDate }}
+      </p>
     </el-card>
+    <el-dialog v-model="showTravelDialog" title="开启旅行模式 / Enable Travel Mode" width="460px" @close="travelEnabled = Boolean(status?.travelModeEnabled)">
+      <el-form :model="travelForm" label-width="120px">
+        <el-form-item label="开始日期">
+          <el-date-picker v-model="travelForm.startDate" type="date" value-format="YYYY-MM-DD" />
+        </el-form-item>
+        <el-form-item label="结束日期">
+          <el-date-picker v-model="travelForm.endDate" type="date" value-format="YYYY-MM-DD" />
+        </el-form-item>
+        <el-form-item label="TOTP">
+          <el-input v-model="travelForm.totpCode" maxlength="6" placeholder="6位TOTP验证码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showTravelDialog = false">取消 / Cancel</el-button>
+        <el-button type="primary" @click="confirmTravelMode" :loading="travelSaving">开启 / Enable</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -59,11 +79,19 @@ const totpCode = ref('')
 const loading = ref(false)
 const periodDays = ref(90)
 const travelEnabled = ref(false)
+const showTravelDialog = ref(false)
+const travelSaving = ref(false)
+const travelForm = ref({
+  startDate: new Date().toISOString().split('T')[0],
+  endDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+  totpCode: ''
+})
 
 onMounted(async () => {
   await heartbeatStore.fetchStatus()
   status.value = heartbeatStore.status
   periodDays.value = status.value?.checkInPeriodDays || 90
+  travelEnabled.value = Boolean(status.value?.travelModeEnabled)
 })
 
 const handleCheckIn = async () => {
@@ -87,12 +115,35 @@ const handleSetPeriod = async (days: number) => {
 
 const handleTravelToggle = async (val: boolean) => {
   if (val) {
-    await enableTravelMode({ startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 30*86400000).toISOString().split('T')[0], totpCode: '000000' })
-    ElMessage.success('旅行模式已开启 / Travel mode enabled')
+    showTravelDialog.value = true
   } else {
     await disableTravelMode()
     ElMessage.success('旅行模式已关闭 / Travel mode disabled')
+    await refreshStatus()
   }
+}
+
+const confirmTravelMode = async () => {
+  if (!travelForm.value.startDate || !travelForm.value.endDate || !travelForm.value.totpCode) {
+    ElMessage.warning('请填写日期和TOTP验证码 / Please enter dates and TOTP code')
+    return
+  }
+  travelSaving.value = true
+  try {
+    await enableTravelMode(travelForm.value)
+    ElMessage.success('旅行模式已开启 / Travel mode enabled')
+    showTravelDialog.value = false
+    await refreshStatus()
+  } finally {
+    travelSaving.value = false
+  }
+}
+
+const refreshStatus = async () => {
+  await heartbeatStore.fetchStatus()
+  status.value = heartbeatStore.status
+  periodDays.value = status.value?.checkInPeriodDays || 90
+  travelEnabled.value = Boolean(status.value?.travelModeEnabled)
 }
 </script>
 

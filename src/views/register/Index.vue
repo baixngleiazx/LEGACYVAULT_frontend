@@ -1,7 +1,10 @@
 <template>
   <div class="register-page">
     <div class="register-card">
-      <h2>LegacyVault 安全注册 / Secure Registration</h2>
+      <div class="register-header">
+        <RegisterBackLogin />
+        <h2>LegacyVault 安全注册 / Secure Registration</h2>
+      </div>
 
       <!-- 步骤条 -->
       <el-steps :active="activeStepIndex" finish-status="success" align-center style="margin-bottom: 24px;">
@@ -42,6 +45,7 @@ import Step2Totp from './Step2Totp.vue'
 import Step3Biometric from './Step3Biometric.vue'
 import Step4Kyc from './Step4Kyc.vue'
 import Step5Recovery from './Step5Recovery.vue'
+import RegisterBackLogin from './RegisterBackLogin.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -151,6 +155,24 @@ async function handleSkip() {
   width: 680px; padding: 40px; background: white;
   border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
 }
-.register-card h2 { text-align: center; margin-bottom: 24px; color: #303133; }
+.register-header {
+  margin-bottom: 24px;
+}
+.register-card h2 {
+  margin: 0;
+  text-align: center;
+  color: #303133;
+}
 .step-content { min-height: 300px; }
+
+@media (max-width: 720px) {
+  .register-card {
+    width: calc(100vw - 32px);
+    padding: 28px 20px;
+  }
+
+  .register-header {
+    margin-bottom: 20px;
+  }
+}
 </style>

@@ -15,3 +15,8 @@ export function verifyAndDecrypt(data: {
 }) {
   return request.post('/delivery/verify', data)
 }
+
+/** 发送/重发交付核验OTP */
+export function sendDeliveryOtp(data: { linkToken: string; channel: 'email' | 'phone' }) {
+  return request.post('/delivery/send-otp', data)
+}

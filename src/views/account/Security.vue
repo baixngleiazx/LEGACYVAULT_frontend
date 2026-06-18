@@ -53,6 +53,26 @@
       </div>
     </el-card>
 
+    <el-card style="margin-bottom:20px">
+      <template #header><span>身份锚定 / Identity Anchors</span></template>
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="邮箱">
+          <el-tag :type="authStore.userInfo?.email ? 'success' : 'warning'">
+            {{ authStore.userInfo?.email || '未绑定' }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="手机号">
+          <el-tag :type="authStore.userInfo?.phone ? 'success' : 'warning'">
+            {{ authStore.userInfo?.phone || '未绑定' }}
+          </el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+      <div style="margin-top:16px">
+        <el-button v-if="!authStore.userInfo?.email" type="primary" @click="openBindDialog('email')">绑定邮箱</el-button>
+        <el-button v-if="!authStore.userInfo?.phone" type="primary" @click="openBindDialog('phone')">绑定手机号</el-button>
+      </div>
+    </el-card>
+
     <!-- 生物特征状态 -->
     <el-card>
       <template #header><span>生物特征 / Biometric</span></template>
@@ -70,6 +90,24 @@
         </el-button>
       </div>
     </el-card>
+
+    <el-dialog v-model="bindDialogVisible" :title="bindType === 'email' ? '绑定邮箱' : '绑定手机号'" width="440px">
+      <el-form label-width="90px">
+        <el-form-item :label="bindType === 'email' ? '邮箱' : '手机号'">
+          <el-input v-model="bindTarget" />
+        </el-form-item>
+        <el-form-item label="验证码">
+          <div style="display:flex;gap:8px;width:100%">
+            <el-input v-model="bindCode" maxlength="6" />
+            <el-button @click="sendBindCode" :loading="sendingCode">发送</el-button>
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="bindDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmBind" :loading="binding">确认绑定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -78,8 +116,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useRegistrationStore } from '../../stores/registration'
-import { getBiometricStatus } from '../../api/auth'
+import { bindContact, getBiometricStatus, sendVerifyCode } from '../../api/auth'
 import { getKycStatus } from '../../api/kyc'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -88,6 +127,12 @@ const registrationStore = useRegistrationStore()
 const steps = computed(() => registrationStore.steps)
 const biometricInfo = ref<any>(null)
 const kycStatus = ref<any>(null)
+const bindDialogVisible = ref(false)
+const bindType = ref<'email' | 'phone'>('email')
+const bindTarget = ref('')
+const bindCode = ref('')
+const sendingCode = ref(false)
+const binding = ref(false)
 
 onMounted(async () => {
   await registrationStore.fetchStatus()
@@ -125,5 +170,44 @@ const kycTagType = computed(() => {
 
 function goToStep(n: number) {
   router.push(`/register/step/${n}`)
+}
+
+function openBindDialog(type: 'email' | 'phone') {
+  bindType.value = type
+  bindTarget.value = ''
+  bindCode.value = ''
+  bindDialogVisible.value = true
+}
+
+async function sendBindCode() {
+  if (!bindTarget.value) {
+    ElMessage.warning('请先填写联系方式')
+    return
+  }
+  sendingCode.value = true
+  try {
+    await sendVerifyCode({ target: bindTarget.value, codeType: 'bind_contact', channel: bindType.value === 'email' ? 'email' : 'sms' })
+    ElMessage.success('验证码发送成功')
+  } catch (e: any) {
+    ElMessage.error(e.message || '验证码发送失败')
+  } finally {
+    sendingCode.value = false
+  }
+}
+
+async function confirmBind() {
+  if (!bindTarget.value || !bindCode.value) {
+    ElMessage.warning('请填写联系方式和验证码')
+    return
+  }
+  binding.value = true
+  try {
+    await bindContact({ target: bindTarget.value, verifyCode: bindCode.value })
+    await authStore.fetchUserInfo()
+    bindDialogVisible.value = false
+    ElMessage.success('绑定成功')
+  } finally {
+    binding.value = false
+  }
 }
 </script>

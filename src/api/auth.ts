@@ -49,6 +49,11 @@ export function useRecoveryCode(code: string) {
   return request.post('/auth/recovery-codes/use', null, { params: { code } })
 }
 
+/** 绑定并验证邮箱或手机号 */
+export function bindContact(data: { target: string; verifyCode: string }) {
+  return request.post('/auth/bind-contact', data)
+}
+
 // ========== 5 步注册流程 ==========
 
 /** 查询 5 步注册流程整体状态 */
@@ -95,8 +100,10 @@ export function confirmWebAuthn(data: {
   credentialId: string
   clientDataJSON: string
   authenticatorData: string
+  attestationObject?: string
   signature?: string
-  publicKey: string
+  publicKey?: string
+  origin?: string
   deviceName?: string
 }) {
   return request.post('/auth/totp/webauthn/confirm', data)

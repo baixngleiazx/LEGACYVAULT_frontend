@@ -104,12 +104,14 @@ const handleSendCode = async () => {
   sendingCode.value = true
   try {
     await sendVerifyCode({ target: codeForm.target, codeType: 'login' })
-    ElMessage.success('验证码已发送（Mock模式请查看控制台日志）/ Code sent (check console log in Mock mode)')
+    ElMessage.success('验证码发送成功 / Code sent successfully')
     countdown.value = 60
     const timer = setInterval(() => {
       countdown.value--
       if (countdown.value <= 0) clearInterval(timer)
     }, 1000)
+  } catch (e: any) {
+    ElMessage.error(e.message || '验证码发送失败 / Failed to send code')
   } finally {
     sendingCode.value = false
   }

@@ -82,26 +82,76 @@ function copySecret() {
 }
 
 async function handleWebAuthn() {
+  if (!window.PublicKeyCredential || !navigator.credentials?.create) {
+    ElMessage.error('当前浏览器不支持 WebAuthn / Passkey')
+    return
+  }
   loading.value = true
   try {
-    // 1. 初始化挑战
     const initRes: any = await initWebAuthn()
-    // 2. Mock 模式下直接构造一个虚拟凭证（真实模式需调用 navigator.credentials.create）
-    const mockCredential = {
-      credentialId: btoa('mock-credential-' + Date.now()),
-      clientDataJSON: btoa('{}'),
-      authenticatorData: btoa('mock-auth-data'),
-      signature: '',
-      publicKey: btoa('mock-public-key-' + Date.now()),
+    const options = initRes.data
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: base64UrlToBuffer(options.challenge),
+        rp: {
+          id: location.hostname,
+          name: options.rpName || 'LegacyVault'
+        },
+        user: {
+          id: new TextEncoder().encode(options.userId),
+          name: options.userName || `user-${options.userId}`,
+          displayName: options.userName || `user-${options.userId}`
+        },
+        pubKeyCredParams: [
+          { type: 'public-key', alg: -7 },
+          { type: 'public-key', alg: -257 }
+        ],
+        timeout: options.timeout || 300000,
+        attestation: 'none',
+        authenticatorSelection: {
+          userVerification: 'preferred',
+          residentKey: 'preferred'
+        }
+      }
+    }) as PublicKeyCredential | null
+
+    if (!credential) {
+      throw new Error('未获取到硬件密钥凭证')
+    }
+    const response = credential.response as AuthenticatorAttestationResponse
+    const publicKeyGetter = response as AuthenticatorAttestationResponse & { getPublicKey?: () => ArrayBuffer | null }
+    const payload = {
+      credentialId: bufferToBase64Url(credential.rawId),
+      clientDataJSON: bufferToBase64Url(response.clientDataJSON),
+      authenticatorData: bufferToBase64Url(response.getAuthenticatorData()),
+      attestationObject: bufferToBase64Url(response.attestationObject),
+      publicKey: publicKeyGetter.getPublicKey?.() ? bufferToBase64Url(publicKeyGetter.getPublicKey()!) : undefined,
+      origin: location.origin,
       deviceName: 'YubiKey 5'
     }
-    await confirmWebAuthn(mockCredential)
+    await confirmWebAuthn(payload)
     ElMessage.success('硬件密钥绑定成功')
     await registrationStore.completeStep(2)
     emit('next')
   } catch (e: any) {
     ElMessage.error(e.message || '硬件密钥绑定失败')
   } finally { loading.value = false }
+}
+
+function base64UrlToBuffer(value: string): ArrayBuffer {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4)
+  const binary = atob(padded)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+  return bytes.buffer
+}
+
+function bufferToBase64Url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte) })
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
 }
 
 async function handleConfirm() {

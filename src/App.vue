@@ -10,6 +10,7 @@
             <el-menu-item index="/heartbeat">心跳打卡 / Heartbeat</el-menu-item>
             <el-menu-item index="/content">资产保管 / Assets</el-menu-item>
             <el-menu-item index="/heir">继承人管理 / Heirs</el-menu-item>
+            <el-menu-item index="/trusted-contact">可信联系人 / Contacts</el-menu-item>
             <el-menu-item index="/trigger">触发状态 / Trigger</el-menu-item>
           </el-menu>
         </div>

@@ -23,12 +23,21 @@
       </el-descriptions>
       <div v-if="isActive" style="margin-top:20px;text-align:center">
         <el-button type="danger" size="large" @click="showAbortDialog = true">紧急中止触发流程 / Emergency Abort</el-button>
-        <p style="color:#909399;margin-top:8px">使用密码+TOTP即可立即中止所有流程 / Use password + TOTP to abort all processes immediately</p>
+        <p style="color:#909399;margin-top:8px">可使用TOTP或离线恢复码中止当前流程 / Use TOTP or an offline recovery code to abort</p>
       </div>
     </el-card>
-    <el-dialog v-model="showAbortDialog" title="中止触发流程 / Abort Trigger Process" width="400px">
-      <p style="margin-bottom:16px">输入TOTP验证码以中止当前触发流程：/ Enter TOTP code to abort the current trigger process:</p>
-      <el-input v-model="abortTotpCode" placeholder="6位TOTP验证码 / 6-digit TOTP code" maxlength="6" size="large" />
+    <el-dialog v-model="showAbortDialog" title="中止触发流程 / Abort Trigger Process" width="440px">
+      <el-tabs v-model="abortMode">
+        <el-tab-pane label="TOTP 验证码" name="totp">
+          <p style="margin-bottom:16px;color:#606266">输入账户密码和TOTP验证码以中止当前触发流程：</p>
+          <el-input v-model="abortPassword" type="password" show-password placeholder="账户密码 / Password" size="large" style="margin-bottom:12px" />
+          <el-input v-model="abortTotpCode" placeholder="6位TOTP验证码 / 6-digit TOTP code" maxlength="6" size="large" />
+        </el-tab-pane>
+        <el-tab-pane label="离线恢复码" name="recovery">
+          <p style="margin-bottom:16px;color:#606266">输入离线恢复码以中止当前触发流程：</p>
+          <el-input v-model="recoveryCode" placeholder="16位恢复码 / Recovery code" maxlength="32" size="large" show-password />
+        </el-tab-pane>
+      </el-tabs>
       <template #footer>
         <el-button @click="showAbortDialog = false">取消 / Cancel</el-button>
         <el-button type="danger" @click="handleAbort" :loading="loading">确认中止 / Confirm Abort</el-button>
@@ -40,11 +49,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getLatestProcess, abortProcess } from '../../api/trigger'
+import { useRecoveryCode } from '../../api/auth'
 import { ElMessage } from 'element-plus'
 
 const latestProcess = ref<any>(null)
 const showAbortDialog = ref(false)
+const abortMode = ref<'totp' | 'recovery'>('totp')
+const abortPassword = ref('')
 const abortTotpCode = ref('')
+const recoveryCode = ref('')
 const loading = ref(false)
 
 const isActive = computed(() => {
@@ -56,11 +69,27 @@ const isActive = computed(() => {
 onMounted(async () => { const res: any = await getLatestProcess(); latestProcess.value = res.data })
 
 const handleAbort = async () => {
+  if (abortMode.value === 'totp' && (!abortPassword.value || !abortTotpCode.value)) {
+    ElMessage.warning('请输入账户密码和TOTP验证码')
+    return
+  }
+  if (abortMode.value === 'recovery' && !recoveryCode.value) {
+    ElMessage.warning('请输入离线恢复码')
+    return
+  }
+
   loading.value = true
   try {
-    await abortProcess(abortTotpCode.value)
+    if (abortMode.value === 'totp') {
+      await abortProcess({ password: abortPassword.value, totpCode: abortTotpCode.value })
+    } else {
+      await useRecoveryCode(recoveryCode.value)
+    }
     ElMessage.success('触发流程已中止 / Trigger process aborted')
     showAbortDialog.value = false
+    abortPassword.value = ''
+    abortTotpCode.value = ''
+    recoveryCode.value = ''
     const res: any = await getLatestProcess(); latestProcess.value = res.data
   } finally { loading.value = false }
 }

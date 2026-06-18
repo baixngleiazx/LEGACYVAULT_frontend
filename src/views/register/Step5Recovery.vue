@@ -37,7 +37,6 @@
     <div style="display:flex;gap:12px;margin-top:24px;justify-content:space-between">
       <el-button @click="$emit('prev')">上一步 / Prev</el-button>
       <div style="display:flex;gap:12px">
-        <el-button @click="goLogin">返回登录 / Back to Login</el-button>
         <el-button type="primary" @click="handleFinish" :loading="loading">
           完成注册 / Finish
         </el-button>
@@ -118,10 +117,6 @@ async function handleFinish() {
   }
 
   router.push('/dashboard')
-}
-
-function goLogin() {
-  router.push('/login')
 }
 
 // 页面卸载时销毁前端缓存（恢复码仅一次性展示）

@@ -42,6 +42,18 @@ const router = createRouter({
         }
       ]
     },
+    {
+      path: '/terms',
+      name: 'Terms',
+      component: () => import('../views/legal/Terms.vue'),
+      meta: { title: '服务条款', layout: 'blank' }
+    },
+    {
+      path: '/privacy',
+      name: 'Privacy',
+      component: () => import('../views/legal/Privacy.vue'),
+      meta: { title: '隐私政策', layout: 'blank' }
+    },
 
     // ==================== 2. 用户路由（requireAuth） ====================
     {
@@ -71,6 +83,12 @@ const router = createRouter({
       name: 'Heir',
       component: () => import('../views/heir/Index.vue'),
       meta: { title: '继承人管理', requireAuth: true, layout: 'user' }
+    },
+    {
+      path: '/trusted-contact',
+      name: 'TrustedContact',
+      component: () => import('../views/trusted-contact/Index.vue'),
+      meta: { title: '可信联系人', requireAuth: true, layout: 'user' }
     },
     {
       path: '/trigger',
@@ -133,6 +151,12 @@ const router = createRouter({
       name: 'DeliveryVerify',
       component: () => import('../views/delivery/Verify.vue'),
       meta: { title: '遗产交付核验', layout: 'blank' }
+    },
+    {
+      path: '/trigger/contact-reply',
+      name: 'TriggerContactReply',
+      component: () => import('../views/trigger/ContactReply.vue'),
+      meta: { title: '可信联系人核查', layout: 'blank' }
     },
     {
       path: '/heir/confirm',

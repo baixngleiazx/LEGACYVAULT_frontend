@@ -94,9 +94,11 @@ async function handleSendCode() {
   sendingCode.value = true
   try {
     await sendVerifyCode({ target, codeType: 'register' })
-    ElMessage.success('验证码已发送（Mock 模式请查看后端日志）')
+    ElMessage.success('验证码发送成功')
     countdown.value = 60
     const t = setInterval(() => { countdown.value--; if (countdown.value <= 0) clearInterval(t) }, 1000)
+  } catch (e: any) {
+    ElMessage.error(e.message || '验证码发送失败')
   } finally { sendingCode.value = false }
 }
 
